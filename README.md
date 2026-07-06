@@ -1,16 +1,15 @@
 # AI Service
 
-AI Service la service rieng cho phan AI cua he thong thuong mai dien tu mat hang cong nghe.
+AI Service is a dedicated service for the AI-powered features of the tech ecommerce system.
 
-Huong trien khai tuan 1:
+## Week 1 Implementation Details
+- **API Server:** Built using FastAPI.
+- **Mock Data:** Powered by `data/products.json` prior to backend database integration.
+- **Synchronization:** Initial synchronization of product data via HTTP sync.
+- **Database Schema Management:** Alembic migrations to manage PostgreSQL database schemas.
+- **Message Broker:** Pre-designed RabbitMQ contracts to upgrade to an event-driven architecture later.
 
-- FastAPI lam API server.
-- `data/products.json` lam data mau khi backend chua co database.
-- HTTP sync la cach dong bo san pham chinh trong giai doan dau.
-- Alembic migration quan ly schema database cho AI Service.
-- RabbitMQ contract duoc thiet ke truoc de sau nay nang cap thanh event-driven.
-
-## Kien Truc
+## Architecture
 
 ```txt
 Backend Catalog Service
@@ -23,7 +22,7 @@ AI Service - FastAPI
 AI Database - PostgreSQL
 ```
 
-Tuong lai co the bo sung RabbitMQ:
+Future plans to add RabbitMQ:
 
 ```txt
 Catalog Service
@@ -39,7 +38,7 @@ AI Service consumer
 AI Database
 ```
 
-## Cau Truc Project
+## Project Structure
 
 ```txt
 ai-service/
@@ -52,15 +51,14 @@ ai-service/
     core/
   data/
     products.json
-  docs/
   migrations/
   requirements.txt
   alembic.ini
 ```
 
-## Cai Dat
+## Setup & Installation
 
-Chay tai thu muc project:
+Run the following commands in the project directory:
 
 ```powershell
 cd C:\Users\Lenovo\Documents\Codex\2026-06-30\b\work\ai-service
@@ -69,13 +67,13 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Neu PowerShell chan activate `.venv`, chay:
+If PowerShell restricts script execution, run:
 
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
-## Chay FastAPI
+## Running FastAPI
 
 ```powershell
 python -m uvicorn app.main:app --reload
@@ -87,15 +85,15 @@ Swagger UI:
 http://localhost:8000/docs
 ```
 
-## Test API
+## API Testing
 
-### Health
+### 1. Health Check
 
 ```powershell
 curl http://localhost:8000/api/v1/ai/health
 ```
 
-Ket qua mong doi:
+Expected Response:
 
 ```json
 {
@@ -104,21 +102,20 @@ Ket qua mong doi:
 }
 ```
 
-### Get Products
+### 2. Get Products
 
 ```powershell
 curl http://localhost:8000/api/v1/ai/products
 ```
 
-Ket qua mong doi:
+Expected Output:
 
 ```txt
 total = 20
 ```
 
-### Sync Product
-
-Backend se goi API nay khi them hoac sua san pham.
+### 3. Sync Product
+The backend calls this API when adding or updating a product.
 
 ```powershell
 curl -X POST http://localhost:8000/api/v1/ai/products/sync `
@@ -126,7 +123,7 @@ curl -X POST http://localhost:8000/api/v1/ai/products/sync `
   -d "{\"product_id\":\"test-001\",\"name\":\"Test Product\",\"category\":\"laptop\",\"brand\":\"Test\",\"price\":1000000,\"description\":\"Test sync product\",\"specs\":{\"ram\":\"16GB\"},\"tags\":[\"test\"],\"image_url\":\"https://example.com/test.jpg\",\"is_active\":true}"
 ```
 
-Ket qua mong doi:
+Expected Response:
 
 ```json
 {
@@ -136,21 +133,24 @@ Ket qua mong doi:
 }
 ```
 
-Neu goi lai cung `product_id`, `action` se la:
+If the same `product_id` is sent again, the action will be:
 
-```txt
-updated
+```json
+{
+  "message": "Product synced successfully",
+  "product_id": "test-001",
+  "action": "updated"
+}
 ```
 
-### Deactivate Product
-
-Backend se goi API nay khi xoa hoac an san pham.
+### 4. Deactivate Product
+The backend calls this API when deleting or hiding a product.
 
 ```powershell
 curl -X PATCH http://localhost:8000/api/v1/ai/products/test-001/deactivate
 ```
 
-Ket qua mong doi:
+Expected Response:
 
 ```json
 {
@@ -159,7 +159,7 @@ Ket qua mong doi:
 }
 ```
 
-### Search
+### 5. Search
 
 ```powershell
 curl -X POST http://localhost:8000/api/v1/ai/search `
@@ -167,55 +167,28 @@ curl -X POST http://localhost:8000/api/v1/ai/search `
   -d "{\"query\":\"laptop ram 16gb hoc lap trinh\",\"limit\":5}"
 ```
 
-Ket qua mong doi:
+Expected Output:
+Returns a list of matching laptops with keyword score.
 
-```txt
-Tra ve danh sach laptop phu hop, co score keyword.
-```
+## Database Migrations
 
-## Migration
-
-Project da co Alembic migration dau tien tao bang:
-
+The project includes an initial Alembic migration to create the table:
 ```txt
 ai_products
 ```
 
-Chay migration khi PostgreSQL da san sang:
+Run migration when PostgreSQL is ready:
 
 ```powershell
 alembic upgrade head
 ```
 
-Huong dan chi tiet:
+## RabbitMQ Contract
 
-```txt
-docs/MIGRATIONS.md
-```
-
-## RabbitMQ
-
-Tuan 1 chua can code consumer RabbitMQ. Project da co event contract de backend va AI thong nhat truoc.
-
-```txt
-docs/RABBITMQ_EVENT_CONTRACT.md
-```
-
-Thong tin chinh:
-
+Main details for future RabbitMQ integration:
 ```txt
 Exchange: product.events
 Type: topic
 Queue: ai.product.events
 Routing keys: product.created, product.updated, product.deleted
-```
-
-## Tai Lieu Chinh
-
-```txt
-docs/ARCHITECTURE.md
-docs/API_CONTRACT.md
-docs/PRODUCT_DATA_CONTRACT.md
-docs/DATABASE_SCHEMA_DRAFT.sql
-docs/BACKEND_DISCUSSION_CHECKLIST.md
 ```
