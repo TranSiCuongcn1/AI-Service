@@ -1,0 +1,493 @@
+[
+  {
+    "product_id": "laptop-001",
+    "name": "Lenovo IdeaPad Slim 5",
+    "category": "laptop",
+    "brand": "Lenovo",
+    "price": 18990000.0,
+    "description": "Laptop mong nhe cho sinh vien, hoc lap trinh va lam viec van phong.",
+    "specs": {
+      "cpu": "Intel Core i5-12450H",
+      "ram": "16GB",
+      "storage": "512GB SSD",
+      "gpu": "Intel UHD Graphics",
+      "screen": "14 inch 2.2K",
+      "battery": "56Wh",
+      "weight": "1.46kg"
+    },
+    "tags": [
+      "student",
+      "programming",
+      "office",
+      "lightweight"
+    ],
+    "image_url": "https://example.com/images/laptop-001.jpg",
+    "is_active": false
+  },
+  {
+    "product_id": "laptop-002",
+    "name": "Asus TUF Gaming A15",
+    "category": "laptop",
+    "brand": "Asus",
+    "price": 22990000.0,
+    "description": "Laptop gaming tam trung, phu hop cho game, do hoa co ban va lap trinh.",
+    "specs": {
+      "cpu": "AMD Ryzen 7 7735HS",
+      "ram": "16GB",
+      "storage": "512GB SSD",
+      "gpu": "NVIDIA RTX 4050",
+      "screen": "15.6 inch FHD 144Hz",
+      "battery": "90Wh",
+      "weight": "2.2kg"
+    },
+    "tags": [
+      "gaming",
+      "graphics",
+      "programming",
+      "performance"
+    ],
+    "image_url": "https://example.com/images/laptop-002.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "laptop-003",
+    "name": "MacBook Air M2 13",
+    "category": "laptop",
+    "brand": "Apple",
+    "price": 24990000.0,
+    "description": "Laptop mong nhe, pin lau, phu hop hoc tap, van phong va lap trinh mobile.",
+    "specs": {
+      "cpu": "Apple M2",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "gpu": "Apple integrated GPU",
+      "screen": "13.6 inch Liquid Retina",
+      "battery": "18 hours",
+      "weight": "1.24kg"
+    },
+    "tags": [
+      "student",
+      "office",
+      "battery",
+      "lightweight",
+      "macos"
+    ],
+    "image_url": "https://example.com/images/laptop-003.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "laptop-004",
+    "name": "Acer Aspire 7",
+    "category": "laptop",
+    "brand": "Acer",
+    "price": 16990000.0,
+    "description": "Laptop cau hinh tot trong tam gia, phu hop hoc lap trinh va giai tri.",
+    "specs": {
+      "cpu": "AMD Ryzen 5 5500U",
+      "ram": "8GB",
+      "storage": "512GB SSD",
+      "gpu": "NVIDIA GTX 1650",
+      "screen": "15.6 inch FHD",
+      "battery": "48Wh",
+      "weight": "2.1kg"
+    },
+    "tags": [
+      "budget",
+      "programming",
+      "student",
+      "gaming-light"
+    ],
+    "image_url": "https://example.com/images/laptop-004.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "laptop-005",
+    "name": "Dell XPS 13 Plus",
+    "category": "laptop",
+    "brand": "Dell",
+    "price": 35990000.0,
+    "description": "Laptop cao cap, thiet ke dep, man hinh sac net, phu hop doanh nhan va developer.",
+    "specs": {
+      "cpu": "Intel Core i7-1360P",
+      "ram": "16GB",
+      "storage": "1TB SSD",
+      "gpu": "Intel Iris Xe",
+      "screen": "13.4 inch OLED",
+      "battery": "55Wh",
+      "weight": "1.26kg"
+    },
+    "tags": [
+      "premium",
+      "office",
+      "developer",
+      "lightweight"
+    ],
+    "image_url": "https://example.com/images/laptop-005.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "phone-001",
+    "name": "iPhone 15",
+    "category": "phone",
+    "brand": "Apple",
+    "price": 19990000.0,
+    "description": "Dien thoai iOS man hinh dep, camera tot, hieu nang on dinh.",
+    "specs": {
+      "chip": "Apple A16 Bionic",
+      "ram": "6GB",
+      "storage": "128GB",
+      "screen": "6.1 inch OLED",
+      "camera": "48MP",
+      "battery": "3349mAh"
+    },
+    "tags": [
+      "ios",
+      "camera",
+      "premium",
+      "daily-use"
+    ],
+    "image_url": "https://example.com/images/phone-001.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "phone-002",
+    "name": "Samsung Galaxy S24",
+    "category": "phone",
+    "brand": "Samsung",
+    "price": 20990000.0,
+    "description": "Dien thoai Android cao cap, man hinh dep, camera linh hoat.",
+    "specs": {
+      "chip": "Exynos 2400",
+      "ram": "8GB",
+      "storage": "256GB",
+      "screen": "6.2 inch Dynamic AMOLED",
+      "camera": "50MP",
+      "battery": "4000mAh"
+    },
+    "tags": [
+      "android",
+      "camera",
+      "premium",
+      "amoled"
+    ],
+    "image_url": "https://example.com/images/phone-002.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "phone-003",
+    "name": "Xiaomi Redmi Note 13 Pro",
+    "category": "phone",
+    "brand": "Xiaomi",
+    "price": 7990000.0,
+    "description": "Dien thoai tam trung, pin tot, sac nhanh, man hinh dep.",
+    "specs": {
+      "chip": "Snapdragon 7s Gen 2",
+      "ram": "8GB",
+      "storage": "256GB",
+      "screen": "6.67 inch AMOLED 120Hz",
+      "camera": "200MP",
+      "battery": "5100mAh"
+    },
+    "tags": [
+      "budget",
+      "battery",
+      "fast-charge",
+      "android"
+    ],
+    "image_url": "https://example.com/images/phone-003.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "phone-004",
+    "name": "OPPO Reno11",
+    "category": "phone",
+    "brand": "OPPO",
+    "price": 9990000.0,
+    "description": "Dien thoai chup anh chan dung dep, thiet ke mong nhe.",
+    "specs": {
+      "chip": "MediaTek Dimensity 7050",
+      "ram": "8GB",
+      "storage": "256GB",
+      "screen": "6.7 inch AMOLED",
+      "camera": "50MP",
+      "battery": "5000mAh"
+    },
+    "tags": [
+      "camera",
+      "portrait",
+      "android",
+      "midrange"
+    ],
+    "image_url": "https://example.com/images/phone-004.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "phone-005",
+    "name": "Google Pixel 8",
+    "category": "phone",
+    "brand": "Google",
+    "price": 16990000.0,
+    "description": "Dien thoai Android trai nghiem thuan Google, camera AI tot.",
+    "specs": {
+      "chip": "Google Tensor G3",
+      "ram": "8GB",
+      "storage": "128GB",
+      "screen": "6.2 inch OLED 120Hz",
+      "camera": "50MP",
+      "battery": "4575mAh"
+    },
+    "tags": [
+      "android",
+      "camera",
+      "ai",
+      "compact"
+    ],
+    "image_url": "https://example.com/images/phone-005.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "headphone-001",
+    "name": "Sony WH-1000XM5",
+    "category": "headphone",
+    "brand": "Sony",
+    "price": 7990000.0,
+    "description": "Tai nghe chong on cao cap, am thanh tot, pin lau.",
+    "specs": {
+      "type": "wireless",
+      "connection": "Bluetooth 5.2",
+      "battery": "30 hours",
+      "noise_cancelling": true,
+      "microphone": true
+    },
+    "tags": [
+      "noise-cancelling",
+      "music",
+      "office",
+      "premium"
+    ],
+    "image_url": "https://example.com/images/headphone-001.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "headphone-002",
+    "name": "AirPods Pro 2",
+    "category": "headphone",
+    "brand": "Apple",
+    "price": 5990000.0,
+    "description": "Tai nghe true wireless cho he sinh thai Apple, chong on tot.",
+    "specs": {
+      "type": "true wireless",
+      "connection": "Bluetooth 5.3",
+      "battery": "6 hours per charge",
+      "noise_cancelling": true,
+      "microphone": true
+    },
+    "tags": [
+      "ios",
+      "noise-cancelling",
+      "compact",
+      "premium"
+    ],
+    "image_url": "https://example.com/images/headphone-002.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "headphone-003",
+    "name": "Logitech G435",
+    "category": "headphone",
+    "brand": "Logitech",
+    "price": 1490000.0,
+    "description": "Tai nghe gaming khong day nhe, phu hop hoc online va choi game.",
+    "specs": {
+      "type": "wireless gaming",
+      "connection": "Lightspeed and Bluetooth",
+      "battery": "18 hours",
+      "noise_cancelling": false,
+      "microphone": true
+    },
+    "tags": [
+      "gaming",
+      "wireless",
+      "budget",
+      "lightweight"
+    ],
+    "image_url": "https://example.com/images/headphone-003.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "mouse-001",
+    "name": "Logitech MX Master 3S",
+    "category": "mouse",
+    "brand": "Logitech",
+    "price": 2490000.0,
+    "description": "Chuot khong day cao cap cho van phong, lap trinh va thiet ke.",
+    "specs": {
+      "connection": "Bluetooth and USB receiver",
+      "dpi": "8000",
+      "battery": "70 days",
+      "weight": "141g"
+    },
+    "tags": [
+      "office",
+      "developer",
+      "productivity",
+      "wireless"
+    ],
+    "image_url": "https://example.com/images/mouse-001.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "mouse-002",
+    "name": "Razer DeathAdder V3",
+    "category": "mouse",
+    "brand": "Razer",
+    "price": 1790000.0,
+    "description": "Chuot gaming nhe, cam bien tot, phu hop FPS.",
+    "specs": {
+      "connection": "USB wired",
+      "dpi": "30000",
+      "battery": "none",
+      "weight": "59g"
+    },
+    "tags": [
+      "gaming",
+      "fps",
+      "lightweight",
+      "wired"
+    ],
+    "image_url": "https://example.com/images/mouse-002.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "mouse-003",
+    "name": "Logitech M331 Silent",
+    "category": "mouse",
+    "brand": "Logitech",
+    "price": 390000.0,
+    "description": "Chuot khong day gia re, bam em, phu hop van phong va hoc tap.",
+    "specs": {
+      "connection": "USB receiver",
+      "dpi": "1000",
+      "battery": "24 months",
+      "weight": "91g"
+    },
+    "tags": [
+      "budget",
+      "office",
+      "silent",
+      "wireless"
+    ],
+    "image_url": "https://example.com/images/mouse-003.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "keyboard-001",
+    "name": "Keychron K2 V2",
+    "category": "keyboard",
+    "brand": "Keychron",
+    "price": 2190000.0,
+    "description": "Ban phim co khong day layout 75%, phu hop lap trinh va van phong.",
+    "specs": {
+      "layout": "75%",
+      "switch": "Brown switch",
+      "connection": "Bluetooth and USB-C",
+      "backlight": "White LED"
+    },
+    "tags": [
+      "mechanical",
+      "developer",
+      "office",
+      "wireless"
+    ],
+    "image_url": "https://example.com/images/keyboard-001.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "keyboard-002",
+    "name": "Akko 5075B Plus",
+    "category": "keyboard",
+    "brand": "Akko",
+    "price": 1890000.0,
+    "description": "Ban phim co RGB, layout gon, ket noi da che do.",
+    "specs": {
+      "layout": "75%",
+      "switch": "Akko Cream Yellow",
+      "connection": "Bluetooth, 2.4GHz, USB-C",
+      "backlight": "RGB"
+    },
+    "tags": [
+      "mechanical",
+      "rgb",
+      "wireless",
+      "custom"
+    ],
+    "image_url": "https://example.com/images/keyboard-002.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "monitor-001",
+    "name": "Dell UltraSharp U2723QE",
+    "category": "monitor",
+    "brand": "Dell",
+    "price": 12990000.0,
+    "description": "Man hinh 27 inch 4K mau sac tot, phu hop lap trinh va thiet ke.",
+    "specs": {
+      "size": "27 inch",
+      "resolution": "4K UHD",
+      "panel": "IPS Black",
+      "refresh_rate": "60Hz",
+      "ports": "USB-C, HDMI, DisplayPort"
+    },
+    "tags": [
+      "4k",
+      "developer",
+      "design",
+      "usb-c"
+    ],
+    "image_url": "https://example.com/images/monitor-001.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "monitor-002",
+    "name": "LG UltraGear 27GP850",
+    "category": "monitor",
+    "brand": "LG",
+    "price": 7990000.0,
+    "description": "Man hinh gaming 27 inch QHD tan so quet cao, phu hop game va da nhiem.",
+    "specs": {
+      "size": "27 inch",
+      "resolution": "QHD",
+      "panel": "Nano IPS",
+      "refresh_rate": "165Hz",
+      "ports": "HDMI, DisplayPort"
+    },
+    "tags": [
+      "gaming",
+      "qhd",
+      "high-refresh-rate",
+      "ips"
+    ],
+    "image_url": "https://example.com/images/monitor-002.jpg",
+    "is_active": true
+  },
+  {
+    "product_id": "test-001",
+    "name": "Test Laptop 16GB RAM",
+    "category": "laptop",
+    "brand": "TestBrand",
+    "price": 15000000.0,
+    "description": "Laptop test cho lap trinh va hoc tap",
+    "specs": {
+      "cpu": "Intel Core i5",
+      "ram": "16GB",
+      "storage": "512GB SSD"
+    },
+    "tags": [
+      "test",
+      "programming",
+      "student"
+    ],
+    "image_url": "https://example.com/test-laptop.jpg",
+    "is_active": false
+  }
+]
