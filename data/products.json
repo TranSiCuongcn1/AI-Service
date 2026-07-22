@@ -22,7 +22,7 @@
       "lightweight"
     ],
     "image_url": "https://example.com/images/laptop-001.jpg",
-    "is_active": false
+    "is_active": true
   },
   {
     "product_id": "laptop-002",
