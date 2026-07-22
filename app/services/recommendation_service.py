@@ -45,24 +45,23 @@ def recommend_similar_products(
         if candidate.product_id == target_product_id or not candidate.is_active:
             continue
 
+        cand_cat = normalize_text(candidate.category_name or "")
+        cand_brand = normalize_text(candidate.brand or "")
+
+        # Strict Same Category Filter for Similar Products
+        if cand_cat != target_cat:
+            continue
+
         candidate_text = build_content_text(candidate)
         candidate_vector = generate_embedding(candidate_text)
         sim_score = calculate_cosine_similarity(target_vector, candidate_vector)
 
-        cand_cat = normalize_text(candidate.category_name or "")
-        cand_brand = normalize_text(candidate.brand or "")
-
-        # Category and brand relevance boost
-        category_boost = 0.2 if cand_cat == target_cat else 0.0
         brand_boost = 0.1 if cand_brand == target_brand else 0.0
+        total_score = sim_score + brand_boost
 
-        total_score = sim_score + category_boost + brand_boost
-
-        reason = "Sản phẩm cùng phân khúc và tính năng tương đồng"
-        if cand_cat == target_cat and cand_brand == target_brand:
+        reason = f"Sản phẩm {target_product.category_name or ''} cùng phân khúc và tính năng tương đồng"
+        if cand_brand == target_brand:
             reason = f"Cùng thương hiệu {target_product.brand} và danh mục {target_product.category_name}"
-        elif cand_cat == target_cat:
-            reason = f"Sản phẩm {target_product.category_name} thay thế phù hợp"
 
         scored_items.append((total_score, candidate, reason))
 
@@ -88,7 +87,7 @@ def recommend_similar_products(
     return RecommendationResponse(
         target_product_id=target_product.product_id,
         target_product_title=target_product.title,
-        strategy="vector_similarity_and_category_matching",
+        strategy="strict_category_vector_similarity",
         recommendations=recommendations,
     )
 
