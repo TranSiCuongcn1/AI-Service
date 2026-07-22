@@ -7,15 +7,18 @@ class SearchRequest(BaseModel):
 
 
 class SearchResult(BaseModel):
-    product_id: str
-    name: str
-    category: str
+    product_id: int
+    title: str
+    category_id: int | None = None
+    category_name: str | None = None
     brand: str | None = None
-    price: float | None = None
-    score: int
+    original_price: int | None = None
+    discounted_price: int | None = None
+    average_rating: float = 0
+    image_url: str | None = None
+    score: float = 0
 
 
 class SearchResponse(BaseModel):
     query: str
     results: list[SearchResult]
-

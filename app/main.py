@@ -1,4 +1,9 @@
+import logging
+
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
+from starlette.requests import Request
 
 from app.routes.health import router as health_router
 from app.routes.products import router as products_router
@@ -14,6 +19,27 @@ app = FastAPI(
 app.include_router(health_router, prefix="/api/v1/ai", tags=["health"])
 app.include_router(products_router, prefix="/api/v1/ai", tags=["products"])
 app.include_router(search_router, prefix="/api/v1/ai", tags=["search"])
+
+
+logger = logging.getLogger("ai-service")
+
+
+@app.exception_handler(SQLAlchemyError)
+async def database_exception_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
+    logger.exception("Database error while handling %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "Database service unavailable"},
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.exception("Unhandled error while handling %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
 
 
 @app.get("/")
