@@ -11,7 +11,6 @@ from app.services.product_content import build_content_text, build_specs, build_
 logger = logging.getLogger("ai-service.search")
 
 MIN_TOKEN_LENGTH = 2
-# "tai" is intentionally NOT a stopword because of "tai nghe" (headphones)
 STOPWORDS = {
     "bang",
     "bi",
@@ -66,10 +65,32 @@ def normalize_parts(parts: list[str]) -> str:
     return normalize_text(" ".join(part for part in parts if part))
 
 
+def extract_primary_category_intent(raw_query: str) -> str | None:
+    """Extract primary product category intent from user query (e.g. 'chuột chống ồn' -> 'mouse')."""
+    norm_q = normalize_text(raw_query)
+    for cat_name, synonyms in CATEGORY_SYNONYMS.items():
+        for syn in synonyms:
+            if syn in norm_q:
+                if "chuot" in syn or "mouse" in syn:
+                    return "mouse"
+                if "tai nghe" in syn or "headphone" in syn or "airpods" in syn or "earphone" in syn:
+                    return "headphone"
+                if "laptop" in syn or "may tinh xach tay" in syn or "macbook" in syn or "notebook" in syn:
+                    return "laptop"
+                if "ban phim" in syn or "keyboard" in syn:
+                    return "keyboard"
+                if "dien thoai" in syn or "phone" in syn or "iphone" in syn or "smartphone" in syn or "samsung" in syn:
+                    return "phone"
+                if "man hinh" in syn or "monitor" in syn or "display" in syn:
+                    return "monitor"
+    return None
+
+
 def calculate_keyword_score(
     product: Product,
     query_tokens: list[str],
     raw_query: str = "",
+    primary_intent: str | None = None,
 ) -> float:
     score = 0.0
     normalized_q = normalize_text(raw_query)
@@ -77,14 +98,22 @@ def calculate_keyword_score(
     norm_cat = normalize_parts([product.category_name or ""])
     norm_tags = normalize_parts(build_tags(product))
 
-    # 1. Exact phrase matching boost (e.g. "tai nghe" matching title, category, or tags)
+    # 1. Primary Category Intent Enforcement (e.g. "chuột chống ồn" MUST match "mouse")
+    if primary_intent:
+        if norm_cat == primary_intent or primary_intent in norm_title or primary_intent in norm_tags:
+            score += 35.0
+        else:
+            # Mismatched category penalty
+            score -= 50.0
+
+    # 2. Exact phrase matching boost (e.g. "tai nghe" matching title, category, or tags)
     if normalized_q and len(normalized_q) >= 3:
         if normalized_q in norm_title:
             score += 20.0
         elif normalized_q in norm_cat or normalized_q in norm_tags:
             score += 15.0
 
-    # 2. Category Synonyms boost
+    # 3. Category Synonyms boost
     for cat_key, synonyms in CATEGORY_SYNONYMS.items():
         if cat_key in normalized_q:
             for syn in synonyms:
@@ -92,7 +121,7 @@ def calculate_keyword_score(
                     score += 15.0
                     break
 
-    # 3. Exact Word Token matching (prevents substring mismatch like "on" in "phong")
+    # 4. Exact Word Token matching (prevents substring mismatch like "on" in "phong")
     weighted_fields = [
         (4, set(tokenize(product.title))),
         (3, set(tokenize(f"{product.category_name or ''} {product.brand or ''}"))),
@@ -130,8 +159,9 @@ def calculate_cosine_similarity(v1: list[float], v2: list[float]) -> float:
 
 
 def search_products(products: list[Product], query: str, limit: int) -> list[SearchResult]:
-    """Hybrid Search combining Keyword Match Score and Dense Vector Cosine Similarity."""
+    """Hybrid Search combining Primary Intent Filtering, Keyword Match Score, and Dense Vector Cosine Similarity."""
     query_tokens = tokenize(query)
+    primary_intent = extract_primary_category_intent(query)
 
     query_vector: list[float] = []
     try:
@@ -142,7 +172,12 @@ def search_products(products: list[Product], query: str, limit: int) -> list[Sea
     scored_results: list[tuple[float, Product]] = []
 
     for product in products:
-        kw_score = calculate_keyword_score(product, query_tokens, raw_query=query)
+        kw_score = calculate_keyword_score(
+            product,
+            query_tokens,
+            raw_query=query,
+            primary_intent=primary_intent,
+        )
 
         vector_sim = 0.0
         if query_vector:
