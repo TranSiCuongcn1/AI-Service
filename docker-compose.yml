@@ -17,6 +17,22 @@ services:
       timeout: 5s
       retries: 5
 
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: ai_rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   web:
     build: .
     container_name: ai_service_app
@@ -25,10 +41,13 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/ai_service
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
     volumes:
       - .:/app
     depends_on:
       db:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     command: >
       sh -c "alembic upgrade head &&

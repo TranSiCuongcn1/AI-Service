@@ -103,6 +103,28 @@ def list_active_products_safe(db: Session = None) -> list[Product]:
     return []
 
 
+def search_vector_products_db(
+    db: Session,
+    query_vector: list[float],
+    limit: int = 10,
+) -> list[tuple[AIProduct, float]]:
+    """Query top-k most similar products directly from PostgreSQL using pgvector HNSW index and <=> operator."""
+    if not query_vector:
+        return []
+
+    distance_expr = AIProduct.embedding.cosine_distance(query_vector)
+
+    results = db.execute(
+        select(AIProduct, distance_expr.label("distance"))
+        .where(AIProduct.is_active.is_(True))
+        .where(AIProduct.embedding.isnot(None))
+        .order_by(distance_expr.asc())
+        .limit(limit)
+    ).all()
+
+    return [(product, float(1.0 - distance)) for product, distance in results]
+
+
 def list_active_product_summaries(
     db: Session,
     page: int,
