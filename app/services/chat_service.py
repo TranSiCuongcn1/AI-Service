@@ -34,19 +34,23 @@ def format_products_context(search_results: list[SearchResult]) -> str:
 
 
 def generate_gemini_reply(user_message: str, products_context: str) -> str | None:
-    """Invoke Google Gemini REST API with strict RAG context and system prompt."""
+    """Invoke Google Gemini REST API with strict RAG context, domain scope boundaries, and enterprise system prompt."""
     if not GEMINI_API_KEY.strip():
         return None
 
     system_prompt = (
-        "Bạn là Chuyên gia Tư vấn Mua sắm Công nghệ AI chuyên nghiệp của hệ thống E-commerce.\n"
-        "Nhiệm vụ: Trả lời NGẮN GỌN, ĐÚNG TRỌNG TÂM câu hỏi tư vấn của khách bằng tiếng Việt.\n\n"
-        "QUY TẮC AN TOÀN BẮT BUỘC (STRICT GUARDRAILS):\n"
-        "1. CHỈ tư vấn dựa trên danh sách sản phẩm thực tế trong kho bên dưới.\n"
-        "2. Nếu danh sách kho bên dưới KHÔNG có loại sản phẩm khách cần (ví dụ khách hỏi tai nghe nhưng trong kho chỉ có laptop), hãy trả lời thẳng thắn là cửa hàng chưa có loại sản phẩm đó, KHÔNG ĐƯỢC tư vấn sai mặt hàng.\n"
-        "3. Tuyệt đối KHÔNG tự bịa ra tên sản phẩm, thương hiệu hay thông số không có trong danh sách kho.\n"
-        "4. Điêu rõ ưu điểm chính của sản phẩm liên quan trực tiếp tới nhu cầu khách hàng.\n\n"
-        f"DANH SÁCH SẢN PHẨM TRONG KHO HỆ THỐNG:\n{products_context}\n"
+        "Bạn là Chuyên gia Tư vấn Mua sắm Công nghệ AI của Hệ thống Cửa hàng E-commerce Tech Store.\n\n"
+        "1. PHẠM VI KINH DOANH CỦA CỬA HÀNG (ALLOWED STORE DOMAIN):\n"
+        "   - Cửa hàng CHỈ kinh doanh các thiết bị công nghệ bao gồm: Laptop (Máy tính xách tay), Điện thoại (Smartphone), "
+        "Tai nghe, Chuột máy tính, Bàn phím máy tính, Màn hình máy tính (Monitor) và Phụ kiện công nghệ.\n\n"
+        "2. QUY TẮC AN TOÀN & XỬ LÝ PHẢN HỒI (STRICT GUARDRAILS):\n"
+        "   - [Quy tắc Out-of-Domain]: Nếu khách hỏi mặt hàng nằm NGOÀI danh mục công nghệ trên (ví dụ: quần áo, thực phẩm, xe máy, tủ lạnh...), "
+        "hãy lịch sự trả lời rằng cửa hàng chuyên về thiết bị công nghệ (Laptop, Điện thoại, Phụ kiện...) và từ chối tư vấn mặt hàng ngoài ngành.\n"
+        "   - [Quy tắc Out-of-Stock]: Nếu khách hỏi sản phẩm công nghệ thuộc danh mục shop bán nhưng trong DANH SÁCH KHO bên dưới KHÔNG CÓ sản phẩm đó "
+        "(hoặc tạm hết hàng), hãy thông báo rõ ràng rằng kho hiện chưa có mặt hàng đó và gợi ý các thiết bị công nghệ sẵn có.\n"
+        "   - [Quy tắc No-Hallucination]: CHỈ tư vấn và đưa thông số/giá tiền của sản phẩm có mặt trong DANH SÁCH KHO bên dưới. Tuyệt đối KHÔNG tự bịa tên hay giá sản phẩm bên ngoài.\n"
+        "   - [Phong cách]: Ngắn gọn, lịch sự, đúng trọng tâm nhu cầu khách hàng bằng tiếng Việt.\n\n"
+        f"DANH SÁCH SẢN PHẨM HIỆN CÓ TRONG KHO HỆ THỐNG:\n{products_context}\n"
     )
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY.strip()}"
@@ -55,7 +59,7 @@ def generate_gemini_reply(user_message: str, products_context: str) -> str | Non
             {
                 "role": "user",
                 "parts": [
-                    {"text": f"{system_prompt}\nNhu cầu/Câu hỏi của khách: {user_message}"}
+                    {"text": f"{system_prompt}\nNhu cầu / Câu hỏi của khách hàng: {user_message}"}
                 ],
             }
         ],
@@ -64,6 +68,7 @@ def generate_gemini_reply(user_message: str, products_context: str) -> str | Non
             "maxOutputTokens": 600,
         },
     }
+
 
     try:
         data_bytes = json.dumps(payload).encode("utf-8")
