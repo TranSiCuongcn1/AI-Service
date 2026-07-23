@@ -133,14 +133,26 @@ async def process_chat_consultation(
     message: str,
     limit: int = 4,
     db: Session | None = None,
+    user_id: int = 0,
 ) -> ChatResponse:
     """Main RAG Chat Pipeline combining Hybrid Search retrieval and LLM/Fallback generation."""
+    from app.repositories.user_interaction_repository import record_user_interaction
     from app.services.search_service import extract_primary_category_intents, normalize_parts
 
     active_products, source = list_active_products_safe(db)
     search_results = search_products(products=active_products, query=message, limit=limit)
 
     primary_intents = extract_primary_category_intents(message)
+
+    if user_id and user_id > 0 and db is not None:
+        record_user_interaction(
+            db=db,
+            user_id=user_id,
+            interaction_type="CHAT",
+            query_text=message,
+            category_intents=primary_intents,
+        )
+
     has_category_mismatch = False
 
     if primary_intents and search_results:
@@ -182,5 +194,6 @@ async def process_chat_consultation(
         recommended_products=recommended_summaries,
         source=source,
     )
+
 
 

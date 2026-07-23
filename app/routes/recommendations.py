@@ -6,11 +6,29 @@ from app.repositories.product_repository import list_active_products_safe
 from app.schemas.recommendation import RecommendationResponse
 from app.services.recommendation_service import (
     recommend_accessories,
+    recommend_personalized_products,
     recommend_similar_products,
     recommend_trending_products,
 )
 
 router = APIRouter()
+
+
+@router.get("/recommendations/personalized/{user_id}", response_model=RecommendationResponse)
+def get_personalized_recommendations(
+    user_id: int,
+    limit: int = Query(default=5, ge=1, le=20),
+    db: Session = Depends(get_db),
+) -> RecommendationResponse:
+    """Adaptive Personalized Recommendations for User based on recent search & chat interaction history."""
+    products, _ = list_active_products_safe(db)
+    return recommend_personalized_products(
+        products=products,
+        user_id=user_id,
+        limit=limit,
+        db=db,
+    )
+
 
 
 @router.get("/recommendations/trending", response_model=RecommendationResponse)

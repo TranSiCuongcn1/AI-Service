@@ -1,5 +1,9 @@
 import logging
+import math
+from sqlalchemy.orm import Session
 from app.schemas.product import Product
+
+
 from app.schemas.recommendation import RecommendationItem, RecommendationResponse
 from app.services.embedding_service import generate_embedding
 from app.services.product_content import build_content_text
@@ -169,7 +173,8 @@ def recommend_trending_products(
 
         rating = product.average_rating or 4.0
         sold = product.quantity_sold or 0
-        score = (rating * 2.0) + (sold * 0.1)
+        score = (rating * 2.0) + math.log(sold + 1)
+
         reason = f"Sản phẩm nổi bật bán chạy với {rating:.1f}⭐ đánh giá tốt"
 
         scored_items.append((score, product, reason))
@@ -199,4 +204,74 @@ def recommend_trending_products(
         strategy="popular_best_seller_cold_start",
         recommendations=recommendations,
     )
+
+
+def recommend_personalized_products(
+    products: list[Product],
+    user_id: int,
+    limit: int = 5,
+    db: Session | None = None,
+) -> RecommendationResponse:
+    """Adaptive Recommendation Strategy personalized for user based on recent search/chat interaction history."""
+    from app.repositories.user_interaction_repository import get_user_recent_intents
+
+    user_intents = get_user_recent_intents(db, user_id)
+    if not user_intents:
+        res = recommend_trending_products(products=products, limit=limit)
+        res.strategy = "cold_start_fallback_no_history"
+        return res
+
+    scored_items: list[tuple[float, Product, str]] = []
+
+    for product in products:
+        if not product.is_active:
+            continue
+
+        rating = product.average_rating or 4.0
+        sold = product.quantity_sold or 0
+        base_score = (rating * 2.0) + math.log(sold + 1)
+
+        cand_cat = normalize_text(product.category_name or "")
+        cand_title = normalize_text(product.title)
+
+
+        matched_intent = any(
+            intent == cand_cat or intent in cand_title for intent in user_intents
+        )
+
+        if matched_intent:
+            total_score = base_score * 1.35
+            reason = f"Gợi ý cá nhân hóa dựa trên lịch sử quan tâm đến {product.category_name or 'thiết bị này'}"
+        else:
+            total_score = base_score
+            reason = f"Sản phẩm nổi bật với {rating:.1f}⭐ đánh giá tốt"
+
+        scored_items.append((total_score, product, reason))
+
+    scored_items.sort(key=lambda item: -item[0])
+
+    recommendations = [
+        RecommendationItem(
+            product_id=product.product_id,
+            title=product.title,
+            category_id=product.category_id,
+            category_name=product.category_name,
+            brand=product.brand,
+            original_price=product.original_price,
+            discounted_price=product.discounted_price,
+            average_rating=product.average_rating,
+            image_url=product.image_url,
+            similarity_score=round(score, 2),
+            reason=reason,
+        )
+        for score, product, reason in scored_items[:limit]
+    ]
+
+    return RecommendationResponse(
+        target_product_id=user_id,
+        target_product_title=f"Cá nhân hóa cho User ID {user_id}",
+        strategy="personalized_interaction_profile_boost",
+        recommendations=recommendations,
+    )
+
 

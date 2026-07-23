@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field
 class SearchRequest(BaseModel):
     query: str = Field(min_length=1)
     limit: int = Field(default=10, ge=1, le=50)
+    user_id: int | None = Field(default=0, description="Optional user ID for personalized history")
+
 
 
 class SearchResult(BaseModel):

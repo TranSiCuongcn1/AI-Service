@@ -20,5 +20,7 @@ async def chat_consultation(request: ChatRequest, db: Session = Depends(get_db))
         message=request.message,
         limit=request.limit,
         db=db,
+        user_id=request.user_id or 0,
     )
+
 
