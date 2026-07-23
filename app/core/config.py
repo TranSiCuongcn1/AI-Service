@@ -19,3 +19,6 @@ RABBITMQ_QUEUE = os.getenv(
     "RABBITMQ_QUEUE",
     "ai.product.events",
 )
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+
