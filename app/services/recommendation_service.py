@@ -154,3 +154,49 @@ def recommend_accessories(
         strategy="cross_category_complementary_matrix",
         recommendations=recommendations,
     )
+
+
+def recommend_trending_products(
+    products: list[Product],
+    limit: int = 5,
+) -> RecommendationResponse:
+    """Cold-Start Recommendation Strategy for new users with zero history: Best Sellers & Top Rated products."""
+    scored_items: list[tuple[float, Product, str]] = []
+
+    for product in products:
+        if not product.is_active:
+            continue
+
+        rating = product.average_rating or 4.0
+        sold = product.quantity_sold or 0
+        score = (rating * 2.0) + (sold * 0.1)
+        reason = f"Sản phẩm nổi bật bán chạy với {rating:.1f}⭐ đánh giá tốt"
+
+        scored_items.append((score, product, reason))
+
+    scored_items.sort(key=lambda item: -item[0])
+
+    recommendations = [
+        RecommendationItem(
+            product_id=product.product_id,
+            title=product.title,
+            category_id=product.category_id,
+            category_name=product.category_name,
+            brand=product.brand,
+            original_price=product.original_price,
+            discounted_price=product.discounted_price,
+            average_rating=product.average_rating,
+            image_url=product.image_url,
+            similarity_score=round(score, 2),
+            reason=reason,
+        )
+        for score, product, reason in scored_items[:limit]
+    ]
+
+    return RecommendationResponse(
+        target_product_id=0,
+        target_product_title="Trang chủ / Người dùng mới",
+        strategy="popular_best_seller_cold_start",
+        recommendations=recommendations,
+    )
+
