@@ -39,13 +39,14 @@ def generate_gemini_reply(user_message: str, products_context: str) -> str | Non
         return None
 
     system_prompt = (
-        "Bạn là Chuyên gia Tư vấn Mua sắm Công nghệ AI của hệ thống E-commerce.\n"
-        "Nhiệm vụ của bạn là tư vấn thân thiện, ngắn gọn, chuyên nghiệp bằng tiếng Việt dựa TRỰC TIẾP trên danh sách sản phẩm trong kho bên dưới.\n"
-        "QUY TẮC BẮT BUỘC:\n"
-        "1. Chỉ gợi ý các sản phẩm có trong danh sách kho được cung cấp.\n"
-        "2. Không tự bịa ra tên sản phẩm hoặc thông số không có trong danh sách.\n"
-        "3. Đêu rõ ưu điểm chính của sản phẩm được chọn phù hợp với nhu cầu người dùng.\n\n"
-        f"DANH SÁCH SẢN PHẨM TRONG KHO:\n{products_context}\n"
+        "Bạn là Chuyên gia Tư vấn Mua sắm Công nghệ AI chuyên nghiệp của hệ thống E-commerce.\n"
+        "Nhiệm vụ: Trả lời NGẮN GỌN, ĐÚNG TRỌNG TÂM câu hỏi tư vấn của khách bằng tiếng Việt.\n\n"
+        "QUY TẮC AN TOÀN BẮT BUỘC (STRICT GUARDRAILS):\n"
+        "1. CHỈ tư vấn dựa trên danh sách sản phẩm thực tế trong kho bên dưới.\n"
+        "2. Nếu danh sách kho bên dưới KHÔNG có loại sản phẩm khách cần (ví dụ khách hỏi tai nghe nhưng trong kho chỉ có laptop), hãy trả lời thẳng thắn là cửa hàng chưa có loại sản phẩm đó, KHÔNG ĐƯỢC tư vấn sai mặt hàng.\n"
+        "3. Tuyệt đối KHÔNG tự bịa ra tên sản phẩm, thương hiệu hay thông số không có trong danh sách kho.\n"
+        "4. Điêu rõ ưu điểm chính của sản phẩm liên quan trực tiếp tới nhu cầu khách hàng.\n\n"
+        f"DANH SÁCH SẢN PHẨM TRONG KHO HỆ THỐNG:\n{products_context}\n"
     )
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY.strip()}"
@@ -54,12 +55,12 @@ def generate_gemini_reply(user_message: str, products_context: str) -> str | Non
             {
                 "role": "user",
                 "parts": [
-                    {"text": f"{system_prompt}\nNhu cầu khách hàng: {user_message}"}
+                    {"text": f"{system_prompt}\nNhu cầu/Câu hỏi của khách: {user_message}"}
                 ],
             }
         ],
         "generationConfig": {
-            "temperature": 0.4,
+            "temperature": 0.2,
             "maxOutputTokens": 600,
         },
     }
@@ -85,7 +86,11 @@ def generate_gemini_reply(user_message: str, products_context: str) -> str | Non
     return None
 
 
-def generate_fallback_reply(user_message: str, search_results: list[SearchResult]) -> str:
+def generate_fallback_reply(
+    user_message: str,
+    search_results: list[SearchResult],
+    has_category_mismatch: bool = False,
+) -> str:
     """Deterministic, natural Vietnamese AI shopping advice fallback when LLM API key is absent or offline."""
     if not search_results:
         return (
@@ -93,9 +98,15 @@ def generate_fallback_reply(user_message: str, search_results: list[SearchResult
             "Bạn có thể thử tìm kiếm lại với các từ khóa nhu cầu khác như 'laptop 16gb', 'tai nghe chống ồn' hoặc 'chuột không dây' nhé!"
         )
 
-    reply_parts = [
-        f"Chào bạn! Dựa trên nhu cầu '{user_message}', AI Service xin gợi ý các sản phẩm phù hợp nhất dành cho bạn:"
-    ]
+    if has_category_mismatch:
+        reply_parts = [
+            f"Chào bạn! Rất tiếc hiện tại cửa hàng chưa có loại sản phẩm đáp ứng chính xác nhu cầu '{user_message}' của bạn. "
+            "Dưới đây là một số sản phẩm công nghệ nổi bật khác hiện đang có sẵn tại cửa hàng để bạn tham khảo:"
+        ]
+    else:
+        reply_parts = [
+            f"Chào bạn! Dựa trên nhu cầu '{user_message}', AI Service xin tư vấn các sản phẩm phù hợp nhất đang có sẵn tại cửa hàng:"
+        ]
 
     for idx, prod in enumerate(search_results, start=1):
         price_str = (
@@ -123,14 +134,33 @@ def process_chat_consultation(
     db: Session | None = None,
 ) -> ChatResponse:
     """Main RAG Chat Pipeline combining Hybrid Search retrieval and LLM/Fallback generation."""
+    from app.services.search_service import extract_primary_category_intents, normalize_parts
+
     active_products = list_active_products_safe(db)
     search_results = search_products(products=active_products, query=message, limit=limit)
+
+    primary_intents = extract_primary_category_intents(message)
+    has_category_mismatch = False
+
+    if primary_intents and search_results:
+        # Check if retrieved search results actually contain any product matching user's requested category
+        matched = any(
+            (res.category_name and normalize_parts([res.category_name]) in primary_intents)
+            or any(intent in normalize_parts([res.title]) for intent in primary_intents)
+            for res in search_results
+        )
+        if not matched:
+            has_category_mismatch = True
 
     products_context = format_products_context(search_results)
     reply = generate_gemini_reply(user_message=message, products_context=products_context)
 
-    if not reply:
-        reply = generate_fallback_reply(user_message=message, search_results=search_results)
+    if not reply or has_category_mismatch:
+        reply = generate_fallback_reply(
+            user_message=message,
+            search_results=search_results,
+            has_category_mismatch=has_category_mismatch,
+        )
 
     recommended_summaries = [
         RecommendedProductSummary(
@@ -151,3 +181,4 @@ def process_chat_consultation(
         reply=reply,
         recommended_products=recommended_summaries,
     )
+

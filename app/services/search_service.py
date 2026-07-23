@@ -65,32 +65,33 @@ def normalize_parts(parts: list[str]) -> str:
     return normalize_text(" ".join(part for part in parts if part))
 
 
-def extract_primary_category_intent(raw_query: str) -> str | None:
-    """Extract primary product category intent from user query (e.g. 'chuột chống ồn' -> 'mouse')."""
+def extract_primary_category_intents(raw_query: str) -> set[str]:
+    """Extract ALL primary product category intents from user query (e.g. 'chuột và bàn phím' -> {'mouse', 'keyboard'})."""
     norm_q = normalize_text(raw_query)
+    intents = set()
     for cat_name, synonyms in CATEGORY_SYNONYMS.items():
         for syn in synonyms:
             if syn in norm_q:
                 if "chuot" in syn or "mouse" in syn:
-                    return "mouse"
-                if "tai nghe" in syn or "headphone" in syn or "airpods" in syn or "earphone" in syn:
-                    return "headphone"
-                if "laptop" in syn or "may tinh xach tay" in syn or "macbook" in syn or "notebook" in syn:
-                    return "laptop"
-                if "ban phim" in syn or "keyboard" in syn:
-                    return "keyboard"
-                if "dien thoai" in syn or "phone" in syn or "iphone" in syn or "smartphone" in syn or "samsung" in syn:
-                    return "phone"
-                if "man hinh" in syn or "monitor" in syn or "display" in syn:
-                    return "monitor"
-    return None
+                    intents.add("mouse")
+                elif "tai nghe" in syn or "headphone" in syn or "airpods" in syn or "earphone" in syn:
+                    intents.add("headphone")
+                elif "laptop" in syn or "may tinh xach tay" in syn or "macbook" in syn or "notebook" in syn:
+                    intents.add("laptop")
+                elif "ban phim" in syn or "keyboard" in syn:
+                    intents.add("keyboard")
+                elif "dien thoai" in syn or "phone" in syn or "iphone" in syn or "smartphone" in syn or "samsung" in syn:
+                    intents.add("phone")
+                elif "man hinh" in syn or "monitor" in syn or "display" in syn:
+                    intents.add("monitor")
+    return intents
 
 
 def calculate_keyword_score(
     product: Product,
     query_tokens: list[str],
     raw_query: str = "",
-    primary_intent: str | None = None,
+    primary_intents: set[str] | None = None,
 ) -> float:
     score = 0.0
     normalized_q = normalize_text(raw_query)
@@ -98,9 +99,9 @@ def calculate_keyword_score(
     norm_cat = normalize_parts([product.category_name or ""])
     norm_tags = normalize_parts(build_tags(product))
 
-    # 1. Primary Category Intent Enforcement (e.g. "chuột chống ồn" MUST match "mouse")
-    if primary_intent:
-        if norm_cat == primary_intent or primary_intent in norm_title or primary_intent in norm_tags:
+    # 1. Multi-Category Intent Enforcement (e.g. "chuột và bàn phím" matches both mouse and keyboard)
+    if primary_intents:
+        if norm_cat in primary_intents or any(intent in norm_title or intent in norm_tags for intent in primary_intents):
             score += 35.0
         else:
             # Mismatched category penalty
@@ -159,18 +160,13 @@ def calculate_cosine_similarity(v1: list[float], v2: list[float]) -> float:
 
 
 def search_products(products: list[Product], query: str, limit: int) -> list[SearchResult]:
-    """Hybrid Search using Reciprocal Rank Fusion (RRF) with RRF_K=60 and Category Intent Guardrails.
-    
-    1. Independent ranking via Keyword Match Score and Dense Vector Similarity.
-    2. Reciprocal Rank Fusion formula: RRF_Score = 1/(60 + rank_kw) + 1/(60 + rank_vec).
-    3. Primary Category Intent Guardrails applied to boost relevant categories and penalize mismatches.
-    """
+    """Hybrid Search using Reciprocal Rank Fusion (RRF) with RRF_K=60 and Multi-Category Intent Guardrails."""
     if not products or not query.strip():
         return []
 
     RRF_K = 60
     query_tokens = tokenize(query)
-    primary_intent = extract_primary_category_intent(query)
+    primary_intents = extract_primary_category_intents(query)
 
     query_vector: list[float] = []
     try:
@@ -185,7 +181,7 @@ def search_products(products: list[Product], query: str, limit: int) -> list[Sea
             product,
             query_tokens,
             raw_query=query,
-            primary_intent=primary_intent,
+            primary_intents=primary_intents,
         )
         if kw_score > 0:
             kw_scored_products.append((kw_score, product))
@@ -230,18 +226,19 @@ def search_products(products: list[Product], query: str, limit: int) -> list[Sea
         if pid in vec_ranks:
             rrf_score += 1.0 / (RRF_K + vec_ranks[pid])
 
-        # Apply Category Intent Guardrails
-        if primary_intent:
+        # Apply Multi-Category Intent Guardrails
+        if primary_intents:
             norm_cat = normalize_parts([product.category_name or ""])
             norm_title = normalize_parts([product.title])
             norm_tags = normalize_parts(build_tags(product))
-            if norm_cat == primary_intent or primary_intent in norm_title or primary_intent in norm_tags:
+            if norm_cat in primary_intents or any(intent in norm_title or intent in norm_tags for intent in primary_intents):
                 rrf_score *= 1.3
             else:
                 rrf_score *= 0.3
 
         if rrf_score > 0.005:
             rrf_scored_results.append((round(rrf_score, 4), product))
+
 
     # Step 4: Final Sorting by RRF score and fallback quality signals
     rrf_scored_results.sort(
