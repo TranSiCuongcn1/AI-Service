@@ -44,6 +44,30 @@ class VectorSearchTest(unittest.TestCase):
         self.assertGreater(len(results), 0)
         self.assertEqual(results[0].product_id, 1)
 
+    def test_rrf_category_intent_guardrail(self) -> None:
+        mouse_product = Product(
+            product_id=10,
+            title="Chuột không dây Logitech MX Master 3S",
+            category_name="mouse",
+            brand="Logitech",
+            description="Chuột máy tính yên tĩnh chống ồn cao cấp",
+        )
+        headphone_product = Product(
+            product_id=11,
+            title="Tai nghe Sony WH-1000XM5",
+            category_name="headphone",
+            brand="Sony",
+            description="Tai nghe chống ồn chủ động đỉnh cao",
+        )
+
+        # Searching for 'chuột chống ồn' MUST prioritize mouse despite 'chống ồn' matching headphone description
+        results = search_products([mouse_product, headphone_product], "chuột chống ồn", limit=5)
+
+        self.assertGreater(len(results), 0)
+        self.assertEqual(results[0].product_id, 10)
+        self.assertGreater(results[0].score, 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()
+

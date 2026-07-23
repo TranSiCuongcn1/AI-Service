@@ -159,7 +159,16 @@ def calculate_cosine_similarity(v1: list[float], v2: list[float]) -> float:
 
 
 def search_products(products: list[Product], query: str, limit: int) -> list[SearchResult]:
-    """Hybrid Search combining Primary Intent Filtering, Keyword Match Score, and Dense Vector Cosine Similarity."""
+    """Hybrid Search using Reciprocal Rank Fusion (RRF) with RRF_K=60 and Category Intent Guardrails.
+    
+    1. Independent ranking via Keyword Match Score and Dense Vector Similarity.
+    2. Reciprocal Rank Fusion formula: RRF_Score = 1/(60 + rank_kw) + 1/(60 + rank_vec).
+    3. Primary Category Intent Guardrails applied to boost relevant categories and penalize mismatches.
+    """
+    if not products or not query.strip():
+        return []
+
+    RRF_K = 60
     query_tokens = tokenize(query)
     primary_intent = extract_primary_category_intent(query)
 
@@ -169,8 +178,8 @@ def search_products(products: list[Product], query: str, limit: int) -> list[Sea
     except Exception as exc:
         logger.warning("Could not generate query embedding for query '%s': %s", query, exc)
 
-    scored_results: list[tuple[float, Product]] = []
-
+    # Step 1: Calculate Keyword Scores
+    kw_scored_products: list[tuple[float, Product]] = []
     for product in products:
         kw_score = calculate_keyword_score(
             product,
@@ -178,23 +187,64 @@ def search_products(products: list[Product], query: str, limit: int) -> list[Sea
             raw_query=query,
             primary_intent=primary_intent,
         )
+        if kw_score > 0:
+            kw_scored_products.append((kw_score, product))
 
-        vector_sim = 0.0
-        if query_vector:
+    kw_scored_products.sort(key=lambda x: -x[0])
+    kw_ranks: dict[int, int] = {
+        prod.product_id: rank for rank, (_, prod) in enumerate(kw_scored_products, start=1)
+    }
+
+    # Step 2: Calculate Vector Similarity Scores
+    vec_scored_products: list[tuple[float, Product]] = []
+    if query_vector:
+        for product in products:
             product_text = build_content_text(product)
             try:
                 prod_vector = generate_embedding(product_text)
-                vector_sim = calculate_cosine_similarity(query_vector, prod_vector)
+                sim = calculate_cosine_similarity(query_vector, prod_vector)
+                if sim > 0.15:
+                    vec_scored_products.append((sim, product))
             except Exception:
                 pass
 
-        # Hybrid score formula
-        hybrid_score = (kw_score * 1.5) + (vector_sim * 10.0 if vector_sim > 0.3 else 0.0)
+    vec_scored_products.sort(key=lambda x: -x[0])
+    vec_ranks: dict[int, int] = {
+        prod.product_id: rank for rank, (_, prod) in enumerate(vec_scored_products, start=1)
+    }
 
-        if hybrid_score > 0.5:
-            scored_results.append((round(hybrid_score, 2), product))
+    # Step 3: Reciprocal Rank Fusion (RRF)
+    all_candidate_ids = set(kw_ranks.keys()) | set(vec_ranks.keys())
+    product_map = {p.product_id: p for p in products}
 
-    scored_results.sort(
+    rrf_scored_results: list[tuple[float, Product]] = []
+
+    for pid in all_candidate_ids:
+        product = product_map.get(pid)
+        if not product:
+            continue
+
+        rrf_score = 0.0
+        if pid in kw_ranks:
+            rrf_score += 1.0 / (RRF_K + kw_ranks[pid])
+        if pid in vec_ranks:
+            rrf_score += 1.0 / (RRF_K + vec_ranks[pid])
+
+        # Apply Category Intent Guardrails
+        if primary_intent:
+            norm_cat = normalize_parts([product.category_name or ""])
+            norm_title = normalize_parts([product.title])
+            norm_tags = normalize_parts(build_tags(product))
+            if norm_cat == primary_intent or primary_intent in norm_title or primary_intent in norm_tags:
+                rrf_score *= 1.3
+            else:
+                rrf_score *= 0.3
+
+        if rrf_score > 0.005:
+            rrf_scored_results.append((round(rrf_score, 4), product))
+
+    # Step 4: Final Sorting by RRF score and fallback quality signals
+    rrf_scored_results.sort(
         key=lambda item: (
             -item[0],
             -item[1].average_rating,
@@ -217,5 +267,6 @@ def search_products(products: list[Product], query: str, limit: int) -> list[Sea
             image_url=product.image_url,
             score=score,
         )
-        for score, product in scored_results[:limit]
+        for score, product in rrf_scored_results[:limit]
     ]
+
