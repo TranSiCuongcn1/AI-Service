@@ -16,16 +16,10 @@ engine = create_engine(
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
-def get_db() -> Generator[Session | None, None, None]:
-    db = None
+def get_db() -> Generator[Session, None, None]:
+    db = SessionLocal()
     try:
-        db = SessionLocal()
         yield db
-    except Exception:
-        yield None
     finally:
-        if db is not None:
-            try:
-                db.close()
-            except Exception:
-                pass
+        db.close()
+

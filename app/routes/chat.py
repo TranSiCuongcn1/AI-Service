@@ -9,15 +9,16 @@ router = APIRouter()
 
 
 @router.post("/chat", response_model=ChatResponse)
-def chat_consultation(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
+async def chat_consultation(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
     """Smart AI Shopping Assistant Endpoint (RAG Chatbot).
     
     1. Retrieves relevant product context using RRF Hybrid Search.
     2. Generates natural tech purchasing advice via Gemini LLM or Intelligent Fallback.
     3. Returns response text and recommended product cards.
     """
-    return process_chat_consultation(
+    return await process_chat_consultation(
         message=request.message,
         limit=request.limit,
         db=db,
     )
+

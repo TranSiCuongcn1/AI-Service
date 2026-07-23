@@ -22,3 +22,5 @@ class SearchResult(BaseModel):
 class SearchResponse(BaseModel):
     query: str
     results: list[SearchResult]
+    source: str = Field(default="database", description="Data origin source: 'database' or 'fallback_json'")
+

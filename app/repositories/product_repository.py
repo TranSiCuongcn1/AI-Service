@@ -74,13 +74,13 @@ def list_active_products(db: Session) -> list[Product]:
     return [to_product_schema(product) for product in products]
 
 
-def list_active_products_safe(db: Session = None) -> list[Product]:
+def list_active_products_safe(db: Session = None) -> tuple[list[Product], str]:
     """Retrieve active products from PostgreSQL database if available, else fallback to data/products.json."""
     if db is not None:
         try:
             products = list_active_products(db)
             if products:
-                return products
+                return products, "database"
         except Exception as exc:
             logger.warning("PostgreSQL DB unavailable (%s). Falling back to data/products.json dataset.", exc)
 
@@ -98,9 +98,10 @@ def list_active_products_safe(db: Session = None) -> list[Product]:
             if "original_price" not in prod and "price" in prod:
                 prod["original_price"] = int(prod["price"])
             fallback_products.append(Product(**prod))
-        return [p for p in fallback_products if p.is_active]
+        return [p for p in fallback_products if p.is_active], "fallback_json"
 
-    return []
+    return [], "fallback_json"
+
 
 
 def search_vector_products_db(

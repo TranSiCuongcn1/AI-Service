@@ -159,8 +159,16 @@ def calculate_cosine_similarity(v1: list[float], v2: list[float]) -> float:
     return float(dot / (norm_a * norm_b))
 
 
-def search_products(products: list[Product], query: str, limit: int) -> list[SearchResult]:
-    """Hybrid Search using Reciprocal Rank Fusion (RRF) with RRF_K=60 and Multi-Category Intent Guardrails."""
+def search_products(
+    products: list[Product],
+    query: str,
+    limit: int,
+    db_vec_candidates: list[tuple[Product, float]] | None = None,
+) -> list[SearchResult]:
+    """Hybrid Search using Reciprocal Rank Fusion (RRF) with RRF_K=60 and Multi-Category Intent Guardrails.
+    
+    Supports DB HNSW vector index candidates for O(top_k) speed, with in-memory vector fallback when DB is absent.
+    """
     if not products or not query.strip():
         return []
 
@@ -169,10 +177,11 @@ def search_products(products: list[Product], query: str, limit: int) -> list[Sea
     primary_intents = extract_primary_category_intents(query)
 
     query_vector: list[float] = []
-    try:
-        query_vector = generate_embedding(query)
-    except Exception as exc:
-        logger.warning("Could not generate query embedding for query '%s': %s", query, exc)
+    if db_vec_candidates is None:
+        try:
+            query_vector = generate_embedding(query)
+        except Exception as exc:
+            logger.warning("Could not generate query embedding for query '%s': %s", query, exc)
 
     # Step 1: Calculate Keyword Scores
     kw_scored_products: list[tuple[float, Product]] = []
@@ -191,9 +200,14 @@ def search_products(products: list[Product], query: str, limit: int) -> list[Sea
         prod.product_id: rank for rank, (_, prod) in enumerate(kw_scored_products, start=1)
     }
 
-    # Step 2: Calculate Vector Similarity Scores
-    vec_scored_products: list[tuple[float, Product]] = []
-    if query_vector:
+    # Step 2: Vector Ranks (Use DB HNSW index candidates if available, else in-memory fallback)
+    vec_ranks: dict[int, int] = {}
+    if db_vec_candidates is not None:
+        for rank, (prod, sim) in enumerate(db_vec_candidates, start=1):
+            if sim > 0.15:
+                vec_ranks[prod.product_id] = rank
+    elif query_vector:
+        vec_scored_products: list[tuple[float, Product]] = []
         for product in products:
             product_text = build_content_text(product)
             try:
@@ -204,10 +218,11 @@ def search_products(products: list[Product], query: str, limit: int) -> list[Sea
             except Exception:
                 pass
 
-    vec_scored_products.sort(key=lambda x: -x[0])
-    vec_ranks: dict[int, int] = {
-        prod.product_id: rank for rank, (_, prod) in enumerate(vec_scored_products, start=1)
-    }
+        vec_scored_products.sort(key=lambda x: -x[0])
+        vec_ranks = {
+            prod.product_id: rank for rank, (_, prod) in enumerate(vec_scored_products, start=1)
+        }
+
 
     # Step 3: Reciprocal Rank Fusion (RRF)
     all_candidate_ids = set(kw_ranks.keys()) | set(vec_ranks.keys())

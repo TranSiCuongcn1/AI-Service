@@ -7,3 +7,5 @@ pgvector==0.3.6
 sentence-transformers==3.3.1
 aio-pika==9.5.4
 pydantic-settings==2.7.1
+httpx==0.28.1
+

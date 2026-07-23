@@ -23,3 +23,5 @@ class ChatResponse(BaseModel):
     recommended_products: list[RecommendedProductSummary] = Field(
         default_factory=list, description="Recommended products matching context"
     )
+    source: str = Field(default="database", description="Data origin source: 'database' or 'fallback_json'")
+

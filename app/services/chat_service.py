@@ -1,9 +1,9 @@
-import json
+import httpx
 import logging
-import urllib.request
 from sqlalchemy.orm import Session
 
-from app.core.config import GEMINI_API_KEY
+
+from app.core.config import GEMINI_API_KEY, GEMINI_MODEL
 from app.repositories.product_repository import list_active_products_safe
 from app.schemas.chat import ChatResponse, RecommendedProductSummary
 from app.schemas.search import SearchResult
@@ -33,8 +33,8 @@ def format_products_context(search_results: list[SearchResult]) -> str:
     return "\n".join(context_lines)
 
 
-def generate_gemini_reply(user_message: str, products_context: str) -> str | None:
-    """Invoke Google Gemini REST API with strict RAG context, domain scope boundaries, and enterprise system prompt."""
+async def generate_gemini_reply(user_message: str, products_context: str) -> str | None:
+    """Invoke Google Gemini REST API asynchronously with httpx AsyncClient, strict RAG context, and GEMINI_MODEL."""
     if not GEMINI_API_KEY.strip():
         return None
 
@@ -53,7 +53,7 @@ def generate_gemini_reply(user_message: str, products_context: str) -> str | Non
         f"DANH SÁCH SẢN PHẨM HIỆN CÓ TRONG KHO HỆ THỐNG:\n{products_context}\n"
     )
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY.strip()}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY.strip()}"
     payload = {
         "contents": [
             {
@@ -69,24 +69,20 @@ def generate_gemini_reply(user_message: str, products_context: str) -> str | Non
         },
     }
 
-
     try:
-        data_bytes = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            url,
-            data=data_bytes,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=8) as response:
-            res_data = json.loads(response.read().decode("utf-8"))
-            candidates = res_data.get("candidates", [])
-            if candidates:
-                parts = candidates[0].get("content", {}).get("parts", [])
-                if parts:
-                    return parts[0].get("text", "").strip()
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            response = await client.post(url, json=payload)
+            if response.status_code == 200:
+                res_data = response.json()
+                candidates = res_data.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    if parts:
+                        return parts[0].get("text", "").strip()
+            else:
+                logger.warning("Gemini API error (status %s): %s", response.status_code, response.text)
     except Exception as exc:
-        logger.warning("Gemini API call failed (%s). Falling back to rule-based assistant.", exc)
+        logger.warning("Gemini Async API call failed (%s). Falling back to rule-based assistant.", exc)
 
     return None
 
@@ -133,7 +129,7 @@ def generate_fallback_reply(
     return "\n\n".join(reply_parts)
 
 
-def process_chat_consultation(
+async def process_chat_consultation(
     message: str,
     limit: int = 4,
     db: Session | None = None,
@@ -141,14 +137,13 @@ def process_chat_consultation(
     """Main RAG Chat Pipeline combining Hybrid Search retrieval and LLM/Fallback generation."""
     from app.services.search_service import extract_primary_category_intents, normalize_parts
 
-    active_products = list_active_products_safe(db)
+    active_products, source = list_active_products_safe(db)
     search_results = search_products(products=active_products, query=message, limit=limit)
 
     primary_intents = extract_primary_category_intents(message)
     has_category_mismatch = False
 
     if primary_intents and search_results:
-        # Check if retrieved search results actually contain any product matching user's requested category
         matched = any(
             (res.category_name and normalize_parts([res.category_name]) in primary_intents)
             or any(intent in normalize_parts([res.title]) for intent in primary_intents)
@@ -158,7 +153,7 @@ def process_chat_consultation(
             has_category_mismatch = True
 
     products_context = format_products_context(search_results)
-    reply = generate_gemini_reply(user_message=message, products_context=products_context)
+    reply = await generate_gemini_reply(user_message=message, products_context=products_context)
 
     if not reply or has_category_mismatch:
         reply = generate_fallback_reply(
@@ -185,5 +180,7 @@ def process_chat_consultation(
     return ChatResponse(
         reply=reply,
         recommended_products=recommended_summaries,
+        source=source,
     )
+
 
